@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
-from .base import BaseManager, merge_dict
+from .base import BaseManager
+from clientutils import merge_dict
 
 
 class ClusterNetworkManager(BaseManager):

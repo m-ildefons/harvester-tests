@@ -1,7 +1,8 @@
 from pathlib import Path
 from collections.abc import Mapping
 
-from .base import DEFAULT_NAMESPACE, BaseManager, merge_dict
+from .base import DEFAULT_NAMESPACE, BaseManager
+from clientutils import merge_dict
 
 
 class ImageManager(BaseManager):

@@ -1,6 +1,6 @@
 from urllib.parse import urljoin
 
-from .cluster_managers import (
+from .managers import (
     ProjectManager, ProjectMemberManager,
     PersistentVolumeManager, StorageClassManager, PersistentVolumeClaimManager
 )

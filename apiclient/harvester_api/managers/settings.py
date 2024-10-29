@@ -2,7 +2,8 @@ from collections.abc import Mapping
 
 from harvester_api.models.settings import BaseSettingSpec, BackupTargetSpec, \
     StorageNetworkSpec, KubeconfigDefaultTokenTTLSpec
-from .base import BaseManager, merge_dict
+from .base import BaseManager
+from clientutils import merge_dict
 
 
 class SettingManager(BaseManager):

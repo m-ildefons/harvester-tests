@@ -7,7 +7,8 @@ from harvester_api.managers import (
     DEFAULT_NAMESPACE, HostManager, ImageManager,
     KeypairManager, NetworkManager
 )
-from harvester_api.managers.base import merge_dict, BaseManager
+from harvester_api.managers.base import BaseManager
+from clientutils import merge_dict
 
 
 class BaseTestCase(TestCase):

@@ -35,7 +35,6 @@ def _pickup_k8s_version(versions, target_version):
 
     for ver in sorted_vers:
         if ver.startswith(target_version):
-            warnings.warn(UserWarning(f"Adopt {ver} for target k8s-version {target_version}"))
             return ver
 
     raise AssertionError(

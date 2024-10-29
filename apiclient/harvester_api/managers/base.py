@@ -6,15 +6,6 @@ from pkg_resources import parse_version
 DEFAULT_NAMESPACE = "default"
 
 
-def merge_dict(src, dest):
-    for k, v in src.items():
-        if isinstance(dest.get(k), dict) and isinstance(v, dict):
-            merge_dict(v, dest[k])
-        else:
-            dest[k] = v
-    return dest
-
-
 class BaseManager:
     #: Be used to store sub classes of BaseManager,
     #: the attribute will be automatically updated by `__init_subclass__`

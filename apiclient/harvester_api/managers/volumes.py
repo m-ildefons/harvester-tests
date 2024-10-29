@@ -1,6 +1,6 @@
 from harvester_api.models.volumes import VolumeSpec
-from .base import DEFAULT_NAMESPACE, BaseManager, merge_dict
-
+from .base import DEFAULT_NAMESPACE, BaseManager
+from clientutils import merge_dict
 
 class VolumeManager(BaseManager):
     # XXX: https://github.com/harvester/harvester/issues/3250

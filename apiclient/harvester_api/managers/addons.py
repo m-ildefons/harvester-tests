@@ -1,7 +1,8 @@
 from collections.abc import Mapping
 
 from harvester_api.models.addons import BaseAddonSpec, MonitoringAddonSpec
-from .base import BaseManager, merge_dict
+from .base import BaseManager
+from clientutils import merge_dict
 
 
 class AddonManager(BaseManager):

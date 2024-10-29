@@ -191,6 +191,17 @@ def rke2_cluster(unique_name, rancher_api_client, machine_count, rke2_version):
 
 
 @pytest.fixture(scope='class')
+def k3s_cluster(unique_name, rancher_api_client, machine_count, k3s_version):
+    name = f"k3s-{unique_name}-{machine_count}"
+    yield {
+        "name": name,
+        "id": "",  # set in Test_K3s::test_create_k3s
+        "machine_count": machine_count,
+        "k8s_version": k3s_version
+    }
+
+
+@pytest.fixture(scope='class')
 def csi_deployment(unique_name):
     yield {
         "namespace": "default",
@@ -331,6 +342,32 @@ def test_add_project_owner_user(api_client, rancher_api_client, unique_name, wai
     rancher_api_client.users.delete(uid)
 
 
+@pytest.fixture(scope='class')
+def rancher_machine_config(rancher_api_client, unique_name, ubuntu_image,
+                           vlan_network):
+    code, data = rancher_api_client.harvester_configs.create(
+        name=unique_name,
+        cpus="2",
+        mems="4",
+        disks="40",
+        image_id=ubuntu_image['id'],
+        network_id=vlan_network['name'],
+        ssh_user=ubuntu_image['ssh_user'],
+        user_data=(
+            "#cloud-config\n"
+            "password: test\n"
+            "chpasswd:\n"
+            "    expire: false\n"
+            "ssh_pwauth: true\n"
+        ),
+    )
+    assert 201 == code, (
+        f"Failed to create machine config with error: {code}, {data}"
+    )
+
+    yield data
+
+
 @pytest.mark.p0
 @pytest.mark.rancher
 @pytest.mark.rke2
@@ -339,7 +376,8 @@ class TestRKE2:
     @pytest.mark.dependency(depends=["import_harvester"], name="create_rke2")
     def test_create_rke2(self, rancher_api_client, unique_name, harvester_mgmt_cluster,
                          harvester_cloud_credential, rke2_cluster, ubuntu_image, vlan_network,
-                         rancher_wait_timeout, polling_for):
+                         rancher_wait_timeout, polling_for,
+                         rancher_machine_config):
         # Create Harvester kubeconfig for this RKE2 cluster
         code, data = rancher_api_client.kube_configs.create(
             rke2_cluster['name'],
@@ -368,27 +406,6 @@ class TestRKE2:
             f"Failed to create secret with error: {code}, {data}"
         )
         cloud_provider_config_id = f"{data['metadata']['namespace']}:{data['metadata']['name']}"
-
-        # Create RKE2 cluster spec
-        code, data = rancher_api_client.harvester_configs.create(
-            name=unique_name,
-            cpus="2",
-            mems="4",
-            disks="40",
-            image_id=ubuntu_image['id'],
-            network_id=vlan_network['name'],
-            ssh_user=ubuntu_image['ssh_user'],
-            user_data=(
-                "#cloud-config\n"
-                "password: test\n"
-                "chpasswd:\n"
-                "    expire: false\n"
-                "ssh_pwauth: true\n"
-            ),
-        )
-        assert 201 == code, (
-            f"Failed to create harvester config with error: {code}, {data}"
-        )
 
         # Create RKE2 cluster
         code, data = rancher_api_client.mgmt_clusters.create(
@@ -629,6 +646,99 @@ class TestRKE2:
 
 
 @pytest.mark.p0
+@pytest.mark.rancher
+@pytest.mark.k3s
+@pytest.mark.usefixtures("k3s_cluster")
+class TestK3s:
+
+    @pytest.mark.dependency(depends=["import_harvester"], name="create_k3s")
+    def test_create_k3s(self, rancher_api_client, unique_name,
+                        harvester_mgmt_cluster, rancher_wait_timeout,
+                        k3s_cluster, harvester_cloud_credential, ubuntu_image,
+                        vlan_network, polling_for, rancher_machine_config):
+        # Create K3s cluster
+        code, data = rancher_api_client.mgmt_clusters.create(
+            name=k3s_cluster['name'],
+            cloud_provider_config_id=harvester_cloud_credential['id'],
+            hostname_prefix=f"{k3s_cluster['name']}-",
+            harvester_config_name=unique_name,
+            k8s_version=k3s_cluster['k8s_version'],
+            cloud_credential_id=harvester_cloud_credential['id'],
+            quantity=k3s_cluster['machine_count']
+        )
+        assert 201 == code, (
+            f"Failed to create K3s MgmtCluster {unique_name} with error: {code}, {data}"
+        )
+
+        code, data = polling_for(
+            f"cluster {k3s_cluster['name']} to be ready",
+            lambda code, data:
+                "active" == data['metadata']['state']['name'] and
+                "Ready" in data['metadata']['state']['message'],
+            rancher_api_client.mgmt_clusters.get, k3s_cluster['name'],
+            timeout=rancher_wait_timeout
+        )
+
+        # update fixture value
+        k3s_cluster['id'] = data["status"]["clusterName"]
+
+        # Check deployments
+        testees = [
+            "cattle-cluster-agent",
+            "rancher-webhook",
+            "system-upgrade-controller"
+        ]
+
+        polling_for(
+            f"deployments on {k3s_cluster['name']} to be ready",
+            lambda code, data:
+                200 == code and
+                "active" == data.get("metadata", {}).get("state", {}).get("name"),
+            rancher_api_client.cluster_deployments.get,
+            k3s_cluster['id'], "cattle-system", testees
+        )
+
+        testees = [
+            "coredns",
+            "local-path-provisioner",
+            "metrics-server",
+            "traefik"
+        ]
+
+        polling_for(
+            f"deployments on {k3s_cluster['name']} to be ready",
+            lambda code, data:
+                200 == code and
+                "active" == data.get("metadata", {}).get("state", {}).get("name"),
+            rancher_api_client.cluster_deployments.get,
+                k3s_cluster['id'], "kube-system", testees
+        )
+
+    @pytest.mark.dependency(depends=["create_k3s"])
+    def test_delete_k3s(self, api_client, rancher_api_client, k3s_cluster,
+                        rancher_wait_timeout, polling_for):
+        code, data = rancher_api_client.mgmt_clusters.delete(k3s_cluster['name'])
+        assert 200 == code, (
+            f"Failed to delete K3s MgmtCluster {k3s_cluster['name']} with error: {code}, {data}"
+        )
+
+        polling_for(
+            f"cluster {k3s_cluster['name']} to be deleted",
+            lambda code, data: 404 == code,
+            rancher_api_client.mgmt_clusters.get, k3s_cluster['name'],
+            timeout=rancher_wait_timeout
+        )
+
+        code, data = api_client.vms.get()
+        remaining_vm_cnt = 0
+        for d in data.get('data', []):
+            vm_name = d.get('metadata', {}).get('name', "")
+            if vm_name.startswith(f"{k3s_cluster['name']}-"):
+                remaining_vm_cnt += 1
+        assert 0 == remaining_vm_cnt, (f"Still have {remaining_vm_cnt} K3s VMs")
+
+
+@pytest.mark.p1
 @pytest.mark.rancher
 @pytest.mark.rke1
 @pytest.mark.usefixtures("rke1_cluster")

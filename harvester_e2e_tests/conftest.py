@@ -317,6 +317,7 @@ def pytest_configure(config):
         ('rancher', ("{_r} rancher integration tests")),
         ('rke1', ("{_r} rancher RKE1 tests")),
         ('rke2', ("{_r} rancher RKE2 tests")),
+        ('k3s', ("{_r} rancher K3s tests")),
         ('terraform', ("{_r} terraform tests")),
         ('virtualmachines', ('{_r} virtualmachines tests')),
         ('backup_target', ('{_r} backup-target tests')),

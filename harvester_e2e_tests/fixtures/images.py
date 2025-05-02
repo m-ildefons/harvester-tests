@@ -95,3 +95,28 @@ def image_checker(api_client, wait_timeout, sleep_timeout):
             return False, (code, data)
 
     return ImageChecker()
+
+
+@pytest.fixture(scope="session")
+def ubuntu_image(api_client, unique_name, image_ubuntu, polling_for):
+    name = f"ubuntu-{unique_name}"
+
+    code, data = api_client.images.create_by_url(name, image_ubuntu.url)
+    assert 201 == code, (
+        f"Failed to upload ubuntu image with error: {code}, {data}"
+    )
+
+    code, data = polling_for(
+        f"image {name} to be ready",
+        lambda code, data: data.get('status', {}).get('progress', None) == 100,
+        api_client.images.get, name
+    )
+    namespace = data['metadata']['namespace']
+    name = data['metadata']['name']
+
+    yield {
+        "ssh_user": "ubuntu",
+        "id": f"{namespace}/{name}"
+    }
+
+    api_client.images.delete(name)

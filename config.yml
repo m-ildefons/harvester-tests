@@ -1,27 +1,23 @@
 # Harvester Cluster
-endpoint: 'https://localhost'
+endpoint: 'https://192.168.0.131'
 username: 'admin'
 password: 'password1234'
 # Be used to access Harvester node, fill in one of following is enough.
 host-password: ''
 host-private-key: ''
-
 # VLAN ID, will invoke the tests depended on external networking if not set to -1.
 vlan-id: 1
 # Physical NIC for VLAN. Default is "mgmt"
 vlan-nic: 'mgmt'
 ip-pool-subnet: '192.168.0.0/24'
-ip-pool-start: ''
-ip-pool-end: ''
-
+ip-pool-start: '192.168.0.70'
+ip-pool-end: '192.168.0.80'
 # Wait time for polling operations
-wait-timeout: 600
+wait-timeout: 900
 # Sleep time for polling operations
 sleep-timeout: 3
-
 # script location to manipulate node power cycle
 node-scripts-location: 'scripts/vagrant'
-
 # Images and their sha512sums
 opensuse-image-url: https://rsync.opensuse.org/repositories/Cloud%3A/Images%3A/Leap_15.6/images/openSUSE-Leap-15.6.x86_64-NoCloud.qcow2
 # sha512sum for opensuse image-url
@@ -31,7 +27,6 @@ ubuntu-image-url: https://cloud-images.ubuntu.com/releases/releases/24.04/releas
 ubuntu-checksum: ''
 # cache URL, convert image-url to <image-cache-url>/<filename>
 image-cache-url: ''
-
 # script location for terraform related test cases
 terraform-scripts-location: 'terraform_test_artifacts'
 # Rancher provider version, leave empty for the latest version. e.g. '' or '3.1.1'.
@@ -42,28 +37,24 @@ terraform-provider-rancher: ''
 # '0.0.0-dev' requires Docker, because we will get plugin executable file from the container.
 # '0.6.3' for the specific version.
 terraform-provider-harvester: ''
-
 # Backup Target S3
 s3-endpoint: ''
 region: ''
 accessKeyId: ''
 secretAccessKey: ''
 bucketName: ''
-
 # Backup Target NFS
 nfs-endpoint: ''
 nfs-mount-dir: 'nfsshare'
-
 # Rancher Cluster
-rancher-endpoint: 'https://127.0.0.1'
+rancher-endpoint: 'https://rancher.192.168.0.131.sslip.io'
 rancher-admin-password: 'password1234'
 # Prefix of K8s version for to create downstream cluster
-k8s-version: 'v1.28'
+k8s-version: 'v1.32'
 # Wait time for polling Rancher cluster status.
-rancher-cluster-wait-timeout: 1800
-
+rancher-cluster-wait-timeout: 900
 # Upgrade parameters
-upgrade-prepare-dependence: False
+upgrade-prepare-dependence: false
 upgrade-sc-replicas: 3
 # If the value is empty, then skip the os version validation.
 upgrade-target-version: ""

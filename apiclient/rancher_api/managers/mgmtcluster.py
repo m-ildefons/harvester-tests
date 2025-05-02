@@ -119,6 +119,19 @@ class MgmtClusterManager(BaseManager):
                quantity=1, *, raw=False):
         data = self.create_data(name, cloud_provider_config_id, hostname_prefix,
                                 harvester_config_name, k8s_version, cloud_credential_id, quantity)
+
+        if "k3s" in k8s_version:
+            data['spec']['rkeConfig']['machineGlobalConfig']['disable-cloud-provider'] = True
+            data['spec']['rkeConfig']['machineSelectorConfig'] = [
+                {
+                    "config": {
+                        "protect-kernel-defaults": False,
+                        "kubelet-arg": [
+                            "cloud-provider=external"
+                        ]
+                    }
+                }
+            ]
         return self._create(self.PATH_fmt.format(uid="", ns=""), json=data, raw=raw)
 
     def create_harvester(self, name, *, raw=False):

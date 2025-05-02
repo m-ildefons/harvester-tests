@@ -9,7 +9,18 @@ class StorageClassManager(BaseManager):
         return self._get(self.PATH_fmt.format(uid=name), raw=raw)
 
     def create(self, *args, **kwargs):
-        raise NotImplementedError("Not implemented yet.")
+        url = self.PATH_fmt.format(uid="")
+        data = {
+            "type": "storage.k8s.io.storageclass",
+            "metadata": {
+                "name": "harvester-csi"
+            },
+            "allowVolumeExpansion": True,
+            "provisioner": "driver.harvesterhci.io",
+            "volumeBindingMode": "Immediate",
+            "reclaimPolicy": "Delete",
+        }
+        return self._create(url, json=data)
 
     def update(self, *args, **kwargs):
         raise NotImplementedError("Not implemented yet.")

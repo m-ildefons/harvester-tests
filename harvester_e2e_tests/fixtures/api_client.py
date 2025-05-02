@@ -105,13 +105,13 @@ def host_state(request):
     return HostState(request.config.getoption("--node-scripts-location"))
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def unique_name():
     """Default unique name"""
     return datetime.now().strftime("%Hh%Mm%Ss%f-%m-%d")
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def gen_unique_name():
     """Generate unique name on-demand"""
     return lambda: datetime.now().strftime("%Hh%Mm%Ss%f-%m-%d")

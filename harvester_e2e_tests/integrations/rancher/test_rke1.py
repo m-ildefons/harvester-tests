@@ -186,13 +186,18 @@ class TestRKE1:
     # harvester-cloud-provider
     @pytest.mark.dependency(depends=["create_rke1"], name="cloud_provider_chart")
     def test_cloud_provider_chart(self, rancher_api_client, rke1_cluster, polling_for):
-        chart, deployment = "harvester-cloud-provider", "harvester-cloud-provider"
+        chart = "harvester-cloud-provider"
+        deployment = "harvester-cloud-provider"
+
+        chart_data = rancher_api_client.charts.data(rke1_cluster['id'], 'kube-system', chart)
+        chart_data['charts'][0]['values']['cloudConfigPath'] = "/etc/kubernetes/cloud-config"
+
         polling_for(
             f"chart {chart} to be create",
             lambda code, data:
                 201 == code,
-            rancher_api_client.charts.create,
-                rke1_cluster['id'], "kube-system", chart,
+            rancher_api_client.charts.create_with_data,
+                rke1_cluster['id'], chart_data,
             timeout=60
         )
         # Polling on creation for possible 500 error in Rancher Apps

@@ -19,6 +19,7 @@ from .secret import SecretManager
 from .setting import SettingManager
 from .storageclass import StorageClassManager
 from .user import UserManager
+from .clusterrepo import ClusterRepoManager
 
 __all__ = [
     "ChartManager",
@@ -41,6 +42,7 @@ __all__ = [
     "SettingManager",
     "StorageClassManager",
     "UserManager",
+    "ClusterRepoManager",
     "DEFAULT_NAMESPACE",
     "FLEET_DEFAULT_NAMESPACE"
 ]

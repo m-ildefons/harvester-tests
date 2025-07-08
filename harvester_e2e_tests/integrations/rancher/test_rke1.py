@@ -9,8 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.   See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, contact SUSE LLC.
+
 #
 # To contact SUSE about this file by physical or electronic mail,
 # you may find current contact information at www.suse.com
@@ -188,6 +187,16 @@ class TestRKE1:
     def test_cloud_provider_chart(self, rancher_api_client, rke1_cluster, polling_for):
         chart = "harvester-cloud-provider"
         deployment = "harvester-cloud-provider"
+
+        # Wait for clusterrepo to finish downloading
+        polling_for(
+            f"cluster repo downloading",
+            lambda code, data:
+                200 == code and len(data.get('status', {}).get('conditions', [])) > 1,
+                rancher_api_client.cluster_repos.get,
+                    rke1_cluster['id'], 'rancher-charts',
+            timeout=180
+        )
 
         chart_data = rancher_api_client.charts.data(rke1_cluster['id'], 'kube-system', chart)
         chart_data['charts'][0]['values']['cloudConfigPath'] = "/etc/kubernetes/cloud-config"

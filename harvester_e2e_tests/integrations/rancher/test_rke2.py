@@ -85,12 +85,10 @@ class TestRKE2:
             f"Failed to create RKE2 MgmtCluster {unique_name} with error: {code}, {data}"
         )
 
-        code, data = polling_for(
+        code, data, _ = polling_for(
             f"cluster {rke2_cluster['name']} to be ready",
-            lambda code, data:
-                "active" == data['metadata']['state']['name'] and
-                "Ready" in data['metadata']['state']['message'],
-            rancher_api_client.mgmt_clusters.get, rke2_cluster['name'],
+            lambda code, data, ready: bool(ready),
+            rancher_api_client.mgmt_clusters.ready, rke2_cluster['name'],
             timeout=rancher_wait_timeout
         )
 

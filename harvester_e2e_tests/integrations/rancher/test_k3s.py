@@ -54,12 +54,10 @@ class TestK3s:
             f"Failed to create K3s MgmtCluster {unique_name} with error: {code}, {data}"
         )
 
-        code, data = polling_for(
+        code, data, _ = polling_for(
             f"cluster {k3s_cluster['name']} to be ready",
-            lambda code, data:
-                "active" == data['metadata']['state']['name'] and
-                "Ready" in data['metadata']['state']['message'],
-            rancher_api_client.mgmt_clusters.get, k3s_cluster['name'],
+            lambda code, data, ready: bool(ready),
+            rancher_api_client.mgmt_clusters.ready, k3s_cluster['name'],
             timeout=rancher_wait_timeout
         )
 

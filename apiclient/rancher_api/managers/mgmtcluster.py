@@ -2,7 +2,8 @@ from .base import BaseManager, FLEET_DEFAULT_NAMESPACE
 
 
 class MgmtClusterManager(BaseManager):
-    PATH_fmt = "v1/provisioning.cattle.io.clusters{ns}{uid}"
+    PATH_fmt = "v1/provisioning.cattle.io.clusters{ns}{uid}{params}"
+    queryparams = "?exclude=metadata.relationships&exclude=metadata.managedFields"
 
     def create_data(self, cluster_name, cloud_provider_config_id, hostname_prefix,
                     harvester_config_name, k8s_version, cloud_credential_id, quantity):
@@ -108,11 +109,44 @@ class MgmtClusterManager(BaseManager):
 
     def get(self, name="", *, raw=False):
         if name == "":
-            return self._get(self.PATH_fmt.format(uid="", ns=""), raw=raw)
+            return self._get(self.PATH_fmt.format(uid="", ns="", params=""), raw=raw)
         return self._get(
-            self.PATH_fmt.format(uid=f"/{name}", ns=f"/{FLEET_DEFAULT_NAMESPACE}"),
+            self.PATH_fmt.format(uid=f"/{name}",
+                                 ns=f"/{FLEET_DEFAULT_NAMESPACE}",
+                                 params=self.queryparams),
             raw=raw
         )
+
+    def ready(self, name="", raw=False):
+
+        status_conditions = {
+            'Created': 'True',
+            'Stalled': 'False',
+            'Reconciling': 'False',
+            'RKECluster': 'True',
+            'Provisioned': 'True',
+            'AgentDeployed': 'True',
+            'Connected': 'True',
+            'Ready': 'True',
+            'NoDiskPressure': 'True',
+            'NoMemoryPressure': 'True',
+        }
+
+        code, data = self.get(name=name, raw=raw)
+
+        status = data.get('status', {})
+        if code == 200 and status:
+            if not status.get('clusterName', ''):
+                return code, data, False
+
+            conditions = status.get('conditions', [])
+            for cond, exp in status_conditions.items():
+                if not status_condition_ok(cond, exp, conditions):
+                    print(f"Status condition {cond} is not {exp}")
+                    return code, data, False
+            return code, data, True
+
+        return code, data, False
 
     def create(self, name, cloud_provider_config_id, hostname_prefix,
                harvester_config_name, k8s_version, cloud_credential_id,
@@ -132,11 +166,11 @@ class MgmtClusterManager(BaseManager):
                     }
                 }
             ]
-        return self._create(self.PATH_fmt.format(uid="", ns=""), json=data, raw=raw)
+        return self._create(self.PATH_fmt.format(uid="", ns="", params=""), json=data, raw=raw)
 
     def create_harvester(self, name, *, raw=False):
         return self._create(
-            self.PATH_fmt.format(uid="", ns=""),
+            self.PATH_fmt.format(uid="", ns="", params=""),
             json={
                 "type": "provisioning.cattle.io.cluster",
                 "metadata": {
@@ -152,4 +186,22 @@ class MgmtClusterManager(BaseManager):
         )
 
     def delete(self, name, namespace=FLEET_DEFAULT_NAMESPACE, *, raw=False):
-        return self._delete(self.PATH_fmt.format(uid=f"/{name}", ns=f"/{namespace}"))
+        return self._delete(self.PATH_fmt.format(uid=f"/{name}",
+                                                 ns=f"/{namespace}",
+                                                 params=""))
+
+
+def status_condition_ok(name, expected_status, conditions):
+    _ok, condition = get_status_condition(name, conditions)
+    if not _ok or bool(condition.get('error', True)) or bool(condition.get('transitioning', True)):
+        return False
+
+    if condition.get('status', '') == expected_status:
+        return True
+    return False
+
+def get_status_condition(name, conditions):
+    for condition in conditions:
+        if condition.get('type', '') == name:
+            return True, condition
+    return False, {}

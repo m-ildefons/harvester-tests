@@ -50,7 +50,7 @@ nfs-mount-dir: 'nfsshare'
 rancher-endpoint: 'https://rancher.192.168.0.131.sslip.io'
 rancher-admin-password: 'password1234'
 # Prefix of K8s version for to create downstream cluster
-k8s-version: 'v1.32'
+k8s-version: 'v1.30'
 # Wait time for polling Rancher cluster status.
 rancher-cluster-wait-timeout: 900
 # Upgrade parameters

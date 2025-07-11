@@ -86,3 +86,15 @@ class ClusterDeploymentManager(BaseManager):
     def delete(self, cluster_id, namespace, name, raw=False):
         url = f"{self.PATH_fmt.format(cluster_id=cluster_id)}/{namespace}/{name}"
         return self._delete(url, raw=raw)
+
+    def ready(self, cluster_id, namespace, name):
+        code, data = self.get(cluster_id, namespace=namespace, name=name)
+
+        if code == 200:
+            conditions = data.get('status', {}).get('conditions', [])
+
+            for condition in conditions:
+                if condition.get('reason', '') == 'MinimumReplicasAvailable' and condition.get('status', '') == 'True':
+                    return code, data, True
+
+        return code, data, False

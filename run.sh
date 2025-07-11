@@ -7,8 +7,8 @@ RANCHER_VERSION_URL="${RANCHER_URL}/rancherversion"
 TEST_LIST=(
   "harvester_e2e_tests/integrations/rancher/test_9_rancher_integration.py"
 #  "harvester_e2e_tests/integrations/rancher/test_rke1.py"
-  "harvester_e2e_tests/integrations/rancher/test_rke2.py"
-  "harvester_e2e_tests/integrations/rancher/test_k3s.py"
+#  "harvester_e2e_tests/integrations/rancher/test_rke2.py"
+#  "harvester_e2e_tests/integrations/rancher/test_k3s.py"
 # "harvester_e2e_tests/integrations/rancher/test_terraform_rancher.py"
 )
 

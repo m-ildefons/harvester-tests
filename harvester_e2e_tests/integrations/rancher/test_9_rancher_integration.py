@@ -26,10 +26,34 @@ pytest_plugins = [
     'harvester_e2e_tests.fixtures.rancher',
 ]
 
+# This is not really a test case as such, but rather a gate to prevent the rest
+# of the test suite to run when Rancher is not ready yet.
+# The problem is that Rancher may service API requests when the webhook
+# deployment has not yet an available Pod to service requests. This may result
+# in some fields like `creatorId` being left unpopulated and produce other
+# errors down the line.
+@pytest.mark.dependency(name="wait_for_rancher", scope="session")
+def test_wait_for_rancher(rancher_api_client, polling_for):
+    polling_for(
+        "waiting for rancher deployment to get ready",
+        lambda code, data, ready: bool(ready),
+        rancher_api_client.cluster_deployments.ready,
+            'local', 'cattle-system', 'rancher',
+        timeout=300
+    )
+
+    polling_for(
+        "waiting for rancher webhook deployment to get ready",
+        lambda code, data, ready: bool(ready),
+        rancher_api_client.cluster_deployments.ready,
+            'local', 'cattle-system', 'rancher-webhook',
+        timeout=300
+    )
+
 
 @pytest.mark.p0
 @pytest.mark.rancher
-@pytest.mark.dependency(name="import_harvester", scope="session")
+@pytest.mark.dependency(name="import_harvester", scope="session", depends=["wait_for_rancher"])
 def test_import_harvester(api_client, rancher_api_client, harvester_mgmt_cluster, polling_for):
     # Get cluster registration URL in Rancher's Virtualization Management
     code, data = polling_for(

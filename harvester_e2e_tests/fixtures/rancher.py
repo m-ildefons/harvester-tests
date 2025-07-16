@@ -57,9 +57,9 @@ def rancher_machine_config(rancher_api_client, unique_name, ubuntu_image,
                            vlan_network):
     code, data = rancher_api_client.harvester_configs.create(
         name=unique_name,
-        cpus="2",
-        mems="4",
-        disks="40",
+        cpus="4",
+        mems="8",
+        disks="60",
         image_id=ubuntu_image['id'],
         network_id=vlan_network['name'],
         ssh_user=ubuntu_image['ssh_user'],

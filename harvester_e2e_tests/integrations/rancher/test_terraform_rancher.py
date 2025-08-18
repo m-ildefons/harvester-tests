@@ -220,22 +220,25 @@ def test_create_rke2_cluster(tf_rancher, rke2_cluster, rancher_api_client,
     out, err, code = tf_rancher.apply_resource(spec.type, spec.name)
     assert not err and 0 == code
 
-    rc, data, _ = polling_for(
-        f"rke2 cluster ready",
+    code, data, _ = polling_for(
+        f"rke2 cluster {rke2_cluster['name']} ready",
         lambda code, data, ready: bool(ready),
-        rancher_api_client.mgmt_clusters.ready, rke2_cluster['name'],
+        rancher_api_client.mgmt_clusters.ready,
+            rke2_cluster['name'],
         timeout=rancher_wait_timeout
     )
 
-    # check deployments
     rke2_cluster['id'] = data["status"]["clusterName"]
-    for deployment in ["harvester-cloud-provider", "harvester-csi-driver-controllers"]:
-        rc, depl = rancher_api_client.cluster_deployments.get(
-            rke2_cluster['id'], "kube-system", deployment
-        )
-        depl_state = depl.get("metadata", {}).get("state", {})
-        assert 200 == rc and \
-               "active" == depl_state["name"]
+
+    testees = ["harvester-cloud-provider", "harvester-csi-driver-controllers"]
+    polling_for(
+        f"harvester deployments on {rke2_cluster['name']} to be ready",
+        lambda code, data:
+            200 == code and
+            "active" == data.get('metadata', {}).get('state', {}).get('name'),
+        rancher_api_client.cluster_deployments.get,
+            rke2_cluster['id'], "kube-system", testees
+    )
 
 
 @pytest.mark.p0

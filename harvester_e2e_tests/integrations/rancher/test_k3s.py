@@ -191,7 +191,9 @@ class TestK3s:
                 200 == code and
                 "active" == data.get("metadata", {}).get("state", {}).get("name"),
             rancher_api_client.cluster_deployments.get,
-                k3s_cluster['id'], csi_deployment['namespace'], csi_deployment['name']
+                k3s_cluster['id'], csi_deployment['namespace'], csi_deployment['name'],
+            timeout=150,
+            interval=1
         )
 
     @pytest.mark.dependency(depends=["csi_deployment"])
@@ -238,7 +240,9 @@ class TestK3s:
                 200 == code and
                 "active" == data.get("metadata", {}).get("state", {}).get("name"),
             rancher_api_client.cluster_deployments.get,
-                k3s_cluster['id'], nginx_deployment['namespace'], nginx_deployment['name']
+                k3s_cluster['id'], nginx_deployment['namespace'], nginx_deployment['name'],
+            timeout=150,
+            interval=1
         )
 
     @pytest.mark.dependency(depends=["deploy_nginx"])

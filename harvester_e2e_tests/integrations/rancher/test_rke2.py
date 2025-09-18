@@ -76,7 +76,7 @@ class TestRKE2:
             name=rke2_cluster['name'],
             cloud_provider_config_id=cloud_provider_config_id,
             hostname_prefix=f"{rke2_cluster['name']}-",
-            harvester_config_name=unique_name,
+            harvester_config_name=rancher_machine_config['metadata']['name'],
             k8s_version=rke2_cluster['k8s_version'],
             cloud_credential_id=harvester_cloud_credential['id'],
             quantity=rke2_cluster['machine_count']
@@ -198,7 +198,9 @@ class TestRKE2:
                 200 == code and
                 "active" == data.get("metadata", {}).get("state", {}).get("name"),
             rancher_api_client.cluster_deployments.get,
-                rke2_cluster['id'], csi_deployment['namespace'], csi_deployment['name']
+                rke2_cluster['id'], csi_deployment['namespace'], csi_deployment['name'],
+            timeout=150,
+            interval=1
         )
 
     @pytest.mark.dependency(depends=["csi_deployment"])
@@ -239,7 +241,9 @@ class TestRKE2:
                 200 == code and
                 "active" == data.get("metadata", {}).get("state", {}).get("name"),
             rancher_api_client.cluster_deployments.get,
-                rke2_cluster['id'], nginx_deployment['namespace'], nginx_deployment['name']
+                rke2_cluster['id'], nginx_deployment['namespace'], nginx_deployment['name'],
+            timeout=150,
+            interval=1
         )
 
     @pytest.mark.dependency(depends=["deploy_nginx"])
@@ -305,7 +309,3 @@ class TestRKE2:
             if vm_name.startswith(f"{rke2_cluster['name']}-"):
                 remaining_vm_cnt += 1
         assert 0 == remaining_vm_cnt, (f"Still have {remaining_vm_cnt} RKE2 VMs")
-
-
-
-

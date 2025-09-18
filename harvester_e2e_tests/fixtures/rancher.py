@@ -43,20 +43,19 @@ def rke2_cluster(unique_name, rancher_api_client, machine_count, rke2_version):
 
 @pytest.fixture(scope='class')
 def k3s_cluster(unique_name, rancher_api_client, machine_count, k3s_version):
-    name = f"k3s-{unique_name}-{machine_count}"
     yield {
-        "name": name,
+        "name": f"k3s-{unique_name}-{machine_count}",
         "id": "",  # set in Test_K3s::test_create_k3s
         "machine_count": machine_count,
         "k8s_version": k3s_version
     }
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='module')
 def rancher_machine_config(rancher_api_client, unique_name, ubuntu_image,
                            vlan_network):
     code, data = rancher_api_client.harvester_configs.create(
-        name=unique_name,
+        name=f"machine-config-{unique_name}",
         cpus="4",
         mems="8",
         disks="60",
@@ -142,19 +141,24 @@ def harvester_cloud_credential(api_client, rancher_api_client,
 
 
 @pytest.fixture(scope='session')
-def csi_deployment(unique_name):
+def nginx_container_image():
+    yield "registry.opensuse.org/opensuse/nginx:latest"
+
+
+@pytest.fixture(scope='session')
+def csi_deployment(unique_name, nginx_container_image):
     yield {
         "namespace": "default",
         "name": f"csi-{unique_name}",
-        "image": "nginx:latest",
+        "image": nginx_container_image,
         "pvc": f"pvc-{unique_name}"
     }
 
 
 @pytest.fixture(scope='session')
-def nginx_deployment(unique_name):
+def nginx_deployment(unique_name, nginx_container_image):
     return {
         "namespace": "default",
         "name": f"nginx-{unique_name}",
-        "image": "nginx:latest"
+        "image": nginx_container_image
     }

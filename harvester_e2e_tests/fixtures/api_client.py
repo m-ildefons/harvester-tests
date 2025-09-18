@@ -349,8 +349,9 @@ def polling_for(wait_timeout, sleep_timeout):
     def _polling_for(subject: str,
                      checker: Callable[..., bool],
                      poller: Callable, *args,
-                     timeout=wait_timeout):
-        """ Polling expected confition for `timeout`s every `sleep_timeout`s
+                     timeout=wait_timeout,
+                     interval=sleep_timeout):
+        """ Polling expected condition for `timeout`s every `interval`s
 
         Arguments:
           subject: str, what is waiting for
@@ -378,7 +379,7 @@ def polling_for(wait_timeout, sleep_timeout):
                     testees.remove(testee)
             if not testees:
                 return output
-            sleep(sleep_timeout)
+            sleep(interval)
         else:
             raise AssertionError(
                 f'Timeout {timeout}s waiting for {subject}\n'

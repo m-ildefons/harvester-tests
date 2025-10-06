@@ -86,7 +86,7 @@ def test_import_harvester(api_client, rancher_api_client, harvester_mgmt_cluster
 def test_add_project_owner_user(api_client, rancher_api_client, unique_name, wait_timeout,
                                 harvester_mgmt_cluster):
     cluster_id = harvester_mgmt_cluster['id']
-    username, password = f"user-{unique_name}", unique_name
+    username, password = f"owner-{unique_name}", unique_name
 
     spec = rancher_api_client.users.Spec(password)
     # create user
@@ -133,7 +133,7 @@ def test_add_project_owner_user(api_client, rancher_api_client, unique_name, wai
 def test_add_project_member_user(api_client, rancher_api_client, unique_name, wait_timeout,
                                  harvester_mgmt_cluster):
     cluster_id = harvester_mgmt_cluster['id']
-    username, password = f"user-{unique_name}", unique_name
+    username, password = f"member-{unique_name}", unique_name
 
     spec = rancher_api_client.users.Spec(password)
     # create user
@@ -157,8 +157,7 @@ def test_add_project_member_user(api_client, rancher_api_client, unique_name, wa
     assert 200 == code, (code, data)
     project_id = data['id']
     # add user to `Default` project as *project-member*
-    code, data = cluster_api.project_members.create(project_id, upids[0],
-                                                    "project-member")
+    code, data = cluster_api.project_members.create(project_id, upids[0], "project-member")
     assert 201 == code, (code, data)
     proj_muid = data['id']
 

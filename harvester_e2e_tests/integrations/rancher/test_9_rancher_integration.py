@@ -84,7 +84,7 @@ def test_import_harvester(api_client, rancher_api_client, harvester_mgmt_cluster
 @pytest.mark.rancher
 @pytest.mark.dependency(depends=["import_harvester"])
 def test_add_project_owner_user(api_client, rancher_api_client, unique_name, wait_timeout,
-                                harvester_mgmt_cluster):
+                                harvester_mgmt_cluster, polling_for):
     cluster_id = harvester_mgmt_cluster['id']
     username, password = f"owner-{unique_name}", unique_name
 
@@ -127,11 +127,17 @@ def test_add_project_owner_user(api_client, rancher_api_client, unique_name, wai
     cluster_api.project_members.delete(proj_muid)
     rancher_api_client.users.delete(uid)
 
+    polling_for(
+        f"user {username} to be deleted",
+        lambda code, data: 404 == code,
+        rancher_api_client.users.get, uid
+    )
+
 @pytest.mark.p1
 @pytest.mark.rancher
 @pytest.mark.dependency(depends=["import_harvester"])
 def test_add_project_member_user(api_client, rancher_api_client, unique_name, wait_timeout,
-                                 harvester_mgmt_cluster):
+                                 harvester_mgmt_cluster, polling_for):
     cluster_id = harvester_mgmt_cluster['id']
     username, password = f"member-{unique_name}", unique_name
 
@@ -173,3 +179,9 @@ def test_add_project_member_user(api_client, rancher_api_client, unique_name, wa
     # teardown
     cluster_api.project_members.delete(proj_muid)
     rancher_api_client.users.delete(uid)
+
+    polling_for(
+        f"user {username} to be deleted",
+        lambda code, data: 404 == code,
+        rancher_api_client.users.get, uid
+    )

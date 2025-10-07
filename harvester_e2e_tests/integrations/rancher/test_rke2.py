@@ -38,7 +38,7 @@ class TestRKE2:
         scope="session",
         name="create_rke2"
     )
-    def test_create_rke2(self, rancher_api_client, unique_name, harvester_mgmt_cluster,
+    def test_create_rke2_admin(self, rancher_api_client, unique_name, harvester_mgmt_cluster,
                          harvester_cloud_credential, rke2_cluster, ubuntu_image, vlan_network,
                          rancher_wait_timeout, polling_for,
                          rancher_machine_config):
@@ -307,5 +307,78 @@ class TestRKE2:
         for d in data.get('data', []):
             vm_name = d.get('metadata', {}).get('name', "")
             if vm_name.startswith(f"{rke2_cluster['name']}-"):
+                remaining_vm_cnt += 1
+        assert 0 == remaining_vm_cnt, (f"Still have {remaining_vm_cnt} RKE2 VMs")
+
+    @pytest.mark.dependency(
+        depends=["import_harvester"],
+        scope="session",
+        name="create_rke2_owner"
+    )
+    def test_create_rke2_owner(self,
+                               project_owner, unique_name,
+                               harvester_mgmt_cluster,
+                               harvester_cloud_credential, rke2_version,
+                               rancher_wait_timeout, polling_for,
+                               rancher_machine_config):
+
+        rke2_name = f"rke2-owner-{unique_name}"
+        # Create Harvester kubeconfig for this RKE2 cluster
+        code, data = project_owner.kube_configs.create(rke2_name, harvester_mgmt_cluster['id'])
+        assert 200 == code, (f"failed to create harvester kubeconfig: {code}, {data}")
+        assert "" != data, (f"harvester kubeconfig should not be empty: {data}")
+        kubeconfig = data
+
+        # Create credentials for this RKE2 cluster
+        code, data = project_owner.secrets.create(
+            name=f"cred-{unique_name}",
+            data={"credential": kubeconfig[1:-1].replace("\\n", "\n")},
+            annotations={
+                "v2prov-secret-authorized-for-cluster": rke2_name,
+                "v2prov-authorized-secret-deletes-on-cluster-removal": "true"
+            }
+        )
+        assert 201 == code, (f"failed to create credentials secret {code}, {data}")
+        cloud_provider_config_id = f"{data['metadata']['namespace']}:{data['metadata']['name']}"
+
+        # Create RKE2 cluster
+        code, data = project_owner.mgmt_cluster.create(
+            name=rke2_name,
+            cloud_provider_config_id=cloud_provider_config_id,
+            hostname_prefix=f"{rke2_name}-",
+            harvester_config_name=rancher_machine_config['metadata']['name'],
+            k8s_version=rke2_version,
+            cloud_credential_id=harvester_cloud_credential['id'],
+            quantity=1
+        )
+        assert 201 == code, (f"failed to create RKE2 mgmt cluster {rke2_name}: {code}, {data}")
+        code, data = polling_for(
+            f"{rke2_name} to be ready",
+            lambda code, data, ready: bool(ready),
+            project_owner.mgmt_cluster.rady, rke2_name,
+            timeout=rancher_wait_timeout
+        )
+
+    @pytest.mark.dependency(depends=["create_rke2_owner"])
+    def test_delete_rke2_owner(self, api_client, project_owner, unique_name,
+                               rancher_wait_timeout, polling_for):
+
+        rke2_name = f"rke2-owner-{unique_name}"
+        # Delete RKE2 cluster
+        code, data = project_owner.mgmt_clusters.delete(rke2_name)
+        assert 200 == code, (f"failed to delete RKE2 mgmt cluster {rke2_name}: {code}, {data}")
+
+        polling_for(
+            f"cluster {rke2_name} to be deleted",
+            lambda code, data: 404 == code,
+            project_owner.mgmt_clusters.get, rke2_name,
+            timeout=rancher_wait_timeout
+        )
+
+        code, data = api_client.vms.get()
+        remaining_vm_cnt = 0
+        for d in data.get('data', []):
+            vm_name = d.get('metadata', {}).get('name', "")
+            if vm_name.startswith(f"{rke2_name}-"):
                 remaining_vm_cnt += 1
         assert 0 == remaining_vm_cnt, (f"Still have {remaining_vm_cnt} RKE2 VMs")

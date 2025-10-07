@@ -162,3 +162,98 @@ def nginx_deployment(unique_name, nginx_container_image):
         "name": f"nginx-{unique_name}",
         "image": nginx_container_image
     }
+
+
+@pytest.fixture(scope='session')
+def project_owner(harvester_mgmt_cluster, polling_for, rancher_api_client, unique_name):
+    cluster_id = harvester_mgmt_cluster['id']
+    username, password = f"owner-{unique_name}", unique_name
+
+    spec = rancher_api_client.users.Spec(password)
+    # create user
+    code, data = rancher_api_client.users.create(username, spec)
+    assert 201 == code, (
+        f"Failed to create user {username!r}\n"
+        f"API Status({code}): {data}"
+    )
+    uid, upids = data['id'], data['principalIds']
+
+    # add role `user` to user
+    code, data = rancher_api_client.users.add_role(uid, 'user')
+    assert 201 == code, (
+        f"Failed to add role 'user' for user {username!r}\n"
+        f"API Status({code}): {data}"
+    )
+
+    # Get `Default` project's uid
+    cluster_api = rancher_api_client.clusters.explore(cluster_id)
+    code, data = cluster_api.projects.get_by_name('Default')
+    assert 200 == code, (code, data)
+    project_id = data['id']
+    # add user to `Default` project as *project-owner*
+    code, data = cluster_api.project_members.create(project_id, upids[0], "project-owner")
+    assert 201 == code, (code, data)
+    proj_ouid = data['id']
+
+    # Login as the user
+    endpoint = rancher_api_client.endpoint
+    user_rapi = rancher_api_client.login(endpoint, username, password, ssl_verify=False)
+
+    yield user_rapi
+
+    # teardown
+    cluster_api.project_members.delete(proj_ouid)
+    rancher_api_client.users.delete(uid)
+
+    polling_for(
+        f"user {username} to be deleted",
+        lambda code, data: 404 == code,
+        rancher_api_client.users.get, uid
+    )
+
+@pytest.fixture(scope='session')
+def project_member(harvester_mgmt_cluster, polling_for, rancher_api_client, unique_name):
+    cluster_id = harvester_mgmt_cluster['id']
+    username, password = f"member-{unique_name}", unique_name
+
+    spec = rancher_api_client.users.Spec(password)
+    # create user
+    code, data = rancher_api_client.users.create(username, spec)
+    assert 201 == code, (
+        f"Failed to create user {username!r}\n"
+        f"API Status({code}): {data}"
+    )
+    uid, upids = data['id'], data['principalIds']
+
+    # add role `user` to user
+    code, data = rancher_api_client.users.add_role(uid, 'user')
+    assert 201 == code, (
+        f"Failed to add role 'user' for user {username!r}\n"
+        f"API Status({code}): {data}"
+    )
+
+    # Get `Default` project's uid
+    cluster_api = rancher_api_client.clusters.explore(cluster_id)
+    code, data = cluster_api.projects.get_by_name('Default')
+    assert 200 == code, (code, data)
+    project_id = data['id']
+    # add user to `Default` project as *project-member*
+    code, data = cluster_api.project_members.create(project_id, upids[0], "project-member")
+    assert 201 == code, (code, data)
+    proj_muid = data['id']
+
+    # Login as the user
+    endpoint = rancher_api_client.endpoint
+    user_rapi = rancher_api_client.login(endpoint, username, password, ssl_verify=False)
+
+    yield user_rapi
+
+    # teardown
+    cluster_api.project_members.delete(proj_muid)
+    rancher_api_client.users.delete(uid)
+
+    polling_for(
+        f"user {username} to be deleted",
+        lambda code, data: 404 == code,
+        rancher_api_client.users.get, uid
+    )

@@ -342,7 +342,7 @@ class TestRKE2:
         cloud_provider_config_id = f"{data['metadata']['namespace']}:{data['metadata']['name']}"
 
         # Create RKE2 cluster
-        code, data = project_owner.mgmt_cluster.create(
+        code, data = project_owner.mgmt_clusters.create(
             name=rke2_name,
             cloud_provider_config_id=cloud_provider_config_id,
             hostname_prefix=f"{rke2_name}-",

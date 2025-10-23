@@ -387,3 +387,32 @@ def polling_for(wait_timeout, sleep_timeout):
             )
 
     return _polling_for
+
+
+@pytest.fixture(scope="session")
+def polling_for_any(wait_timeout, sleep_timeout):
+    def _polling_for_any(subject: str,
+                         checker: Callable[..., bool],
+                         poller: Callable,
+                         *args,
+                         timeout=wait_timeout,
+                         interval=sleep_timeout):
+        *poller_args, testee = args
+        testees = testee if isinstance(testee, list) else [testee]
+        checker_args_len = len(getfullargspec(checker).args)
+
+        endtime = datetime.now() + timedelta(seconds=timeout)
+        while endtime > datetime.now():
+            for testee in testees:
+                output = poller(*poller_args, testee)
+                qualified = checker(*output) if checker_args_len > 1 else checker(output)
+                if qualified:
+                    return output
+            sleep(interval)
+
+        raise AssertionError(
+            f'Timeout {timeout}s waiting for {subject}\n'
+            f'Got error: {output}'
+        )
+
+    return _polling_for_any

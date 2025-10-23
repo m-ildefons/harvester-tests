@@ -33,20 +33,21 @@ pytest_plugins = [
 # in some fields like `creatorId` being left unpopulated and produce other
 # errors down the line.
 @pytest.mark.dependency(name="wait_for_rancher", scope="session")
-def test_wait_for_rancher(rancher_api_client, polling_for):
+def test_wait_for_rancher(rancher_api_client, polling_for, polling_for_any):
     polling_for(
         "waiting for rancher deployment to get ready",
         lambda code, data, ready: bool(ready),
         rancher_api_client.cluster_deployments.ready,
-            'local', 'cattle-system', 'rancher',
+            'local', 'cattle-system', ['rancher', 'rancher-webhook'],
         timeout=300
     )
 
-    polling_for(
-        "waiting for rancher webhook deployment to get ready",
+    polling_for_any(
+        "waiting for CAPI controller",
         lambda code, data, ready: bool(ready),
         rancher_api_client.cluster_deployments.ready,
-            'local', 'cattle-system', 'rancher-webhook',
+            'local', 'cattle-provisioning-capi-system',
+            ['capi-controller-manager', 'rancher-turtles-controller-manager'],
         timeout=300
     )
 

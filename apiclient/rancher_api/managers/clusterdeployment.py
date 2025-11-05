@@ -87,7 +87,11 @@ class ClusterDeploymentManager(BaseManager):
         url = f"{self.PATH_fmt.format(cluster_id=cluster_id)}/{namespace}/{name}"
         return self._delete(url, raw=raw)
 
-    def ready(self, cluster_id, namespace, name):
+    def ready(self, cluster_id, deployment_id):
+        namespace, name = deployment_id.split('/')
+        return self._ready(cluster_id, namespace, name)
+
+    def _ready(self, cluster_id, namespace, name):
         code, data = self.get(cluster_id, namespace=namespace, name=name)
 
         if code == 200:

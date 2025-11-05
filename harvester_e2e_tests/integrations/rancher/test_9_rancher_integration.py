@@ -38,7 +38,7 @@ def test_wait_for_rancher(rancher_api_client, polling_for, polling_for_any):
         "waiting for rancher deployment to get ready",
         lambda code, data, ready: bool(ready),
         rancher_api_client.cluster_deployments.ready,
-            'local', 'cattle-system', ['rancher', 'rancher-webhook'],
+            'local', ['cattle-system/rancher', 'cattle-system/rancher-webhook'],
         timeout=300
     )
 
@@ -46,8 +46,8 @@ def test_wait_for_rancher(rancher_api_client, polling_for, polling_for_any):
         "waiting for CAPI controller",
         lambda code, data, ready: bool(ready),
         rancher_api_client.cluster_deployments.ready,
-            'local', 'cattle-provisioning-capi-system',
-            ['capi-controller-manager', 'rancher-turtles-controller-manager'],
+            'local', ['cattle-provisioning-capi-system/capi-controller-manager',
+                      'cattle-turtles-system/rancher-turtles-controller-manager'],
         timeout=300
     )
 
